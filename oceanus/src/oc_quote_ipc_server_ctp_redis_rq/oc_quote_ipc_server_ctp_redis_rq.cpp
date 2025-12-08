@@ -70,112 +70,120 @@ void OcQuoteIpcServerCtpRedisRq::OnTimer()
 
 void OcQuoteIpcServerCtpRedisRq::OnCommandRtn(const char* type, const char* command)
 {
-    json j = json::parse(command);
+    if (strcmp(type, "snapshots") != 0) {
+        return;
+    }
+
+    json j_list = json::parse(command);
     
-    //std::cout << j << std::endl;
-
-    TiQuoteSnapshotStockField stock = {0};
-    
-    // Parse datetime
-    if (j.contains("datetime") && j["datetime"].is_number()) {
-        int64_t datetime_int = j["datetime"];
-        int year = datetime_int / 10000000000000LL;
-        int month = (datetime_int / 100000000000LL) % 100;
-        int day = (datetime_int / 1000000000LL) % 100;
-        int hour = (datetime_int / 10000000LL) % 100;
-        int minute = (datetime_int / 100000LL) % 100;
-        int second = (datetime_int / 1000LL) % 100;
-        int millisecond = datetime_int % 1000;
-
-        // Calculate Unix timestamp in milliseconds
-        std::tm tm = {};
-        tm.tm_year = year - 1900;
-        tm.tm_mon = month - 1;
-        tm.tm_mday = day;
-        tm.tm_hour = hour;
-        tm.tm_min = minute;
-        tm.tm_sec = second;
-        std::time_t time_t = std::mktime(&tm);
-        auto tp = std::chrono::system_clock::from_time_t(time_t);
-        int64_t ms_since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(tp.time_since_epoch()).count();
-        stock.timestamp = ms_since_epoch + millisecond;
-
-        if (j.contains("trading_date") && j["trading_date"].is_number()) {
-        stock.date = j["trading_date"];
-    }
+    if (!j_list.is_array()) {
+        return;
     }
 
-    if (j.contains("exchange") && j["exchange"].is_string()) {
-        strcpy(stock.exchange, j["exchange"].get<std::string>().c_str());
-    }
-    if (j.contains("symbol") && j["symbol"].is_string()) {
-        strcpy(stock.symbol, j["symbol"].get<std::string>().c_str());
-    }
-    if (j.contains("last") && j["last"].is_number()) {
-        stock.last = j["last"];
-    }
-    if (j.contains("prev_close") && j["prev_close"].is_number()) {
-        stock.pre_close = j["prev_close"];
-    }
-    if (j.contains("open") && j["open"].is_number()) {
-        stock.open = j["open"];
-    }
-    if (j.contains("high") && j["high"].is_number()) {
-        stock.high = j["high"];
-    }
-    if (j.contains("low") && j["low"].is_number()) {
-        stock.low = j["low"];
-    }
-    if (j.contains("limit_up") && j["limit_up"].is_number()) {
-        stock.high_limit = j["limit_up"];
-    }
-    if (j.contains("limit_down") && j["limit_down"].is_number()) {
-        stock.low_limit = j["limit_down"];
-    }
-    if (j.contains("volume") && j["volume"].is_number()) {
-        stock.volume = j["volume"];
-    }
-    if (j.contains("total_turnover") && j["total_turnover"].is_number()) {
-        stock.acc_turnover = j["total_turnover"];
-    }
-    if (j.contains("num_trades") && j["num_trades"].is_number()) {
-        stock.match_items = j["num_trades"];
-    }
-    if (j.contains("iopv") && j["iopv"].is_number()) {
-        stock.iopv = j["iopv"];
-    }
-    if (j.contains("prev_iopv") && j["prev_iopv"].is_number()) {
-        stock.pre_close_iopv = j["prev_iopv"];
-    }
+    for (const auto& j : j_list) {
+        TiQuoteSnapshotStockField stock = {0};
+        
+        // Parse datetime
+        if (j.contains("datetime") && j["datetime"].is_number()) {
+            int64_t datetime_int = j["datetime"];
+            int year = datetime_int / 10000000000000LL;
+            int month = (datetime_int / 100000000000LL) % 100;
+            int day = (datetime_int / 1000000000LL) % 100;
+            int hour = (datetime_int / 10000000LL) % 100;
+            int minute = (datetime_int / 100000LL) % 100;
+            int second = (datetime_int / 1000LL) % 100;
+            int millisecond = datetime_int % 1000;
 
-    if (j.contains("ask") && j["ask"].is_array() && j.contains("ask_vol") && j["ask_vol"].is_array()) {
-        size_t len = std::min(j["ask"].size(), j["ask_vol"].size());
-        for(size_t i = 0; i < len && i < 5; i++){
-            if (j["ask"][i].is_number()) stock.ask_price[i] = j["ask"][i];
-            if (j["ask_vol"][i].is_number()) stock.ask_volume[i] = j["ask_vol"][i];
+            // Calculate Unix timestamp in milliseconds
+            std::tm tm = {};
+            tm.tm_year = year - 1900;
+            tm.tm_mon = month - 1;
+            tm.tm_mday = day;
+            tm.tm_hour = hour;
+            tm.tm_min = minute;
+            tm.tm_sec = second;
+            std::time_t time_t = std::mktime(&tm);
+            auto tp = std::chrono::system_clock::from_time_t(time_t);
+            int64_t ms_since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(tp.time_since_epoch()).count();
+            stock.timestamp = ms_since_epoch + millisecond;
+
+            stock.date = year * 10000 + month * 100 + day;
+            stock.time = hour * 10000000 + minute * 100000 + second* 1000 + (millisecond / 1000);
         }
-    }
-    if (j.contains("bid") && j["bid"].is_array() && j.contains("bid_vol") && j["bid_vol"].is_array()) {
-        size_t len = std::min(j["bid"].size(), j["bid_vol"].size());
-        for(size_t i = 0; i < len && i < 5; i++){
-            if (j["bid"][i].is_number()) stock.bid_price[i] = j["bid"][i];
-            if (j["bid_vol"][i].is_number()) stock.bid_volume[i] = j["bid_vol"][i];
+
+        if (j.contains("exchange") && j["exchange"].is_string()) {
+            strcpy(stock.exchange, j["exchange"].get<std::string>().c_str());
         }
+        if (j.contains("symbol") && j["symbol"].is_string()) {
+            strcpy(stock.symbol, j["symbol"].get<std::string>().c_str());
+        }
+        if (j.contains("last") && j["last"].is_number()) {
+            stock.last = j["last"];
+        }
+        if (j.contains("prev_close") && j["prev_close"].is_number()) {
+            stock.pre_close = j["prev_close"];
+        }
+        if (j.contains("open") && j["open"].is_number()) {
+            stock.open = j["open"];
+        }
+        if (j.contains("high") && j["high"].is_number()) {
+            stock.high = j["high"];
+        }
+        if (j.contains("low") && j["low"].is_number()) {
+            stock.low = j["low"];
+        }
+        if (j.contains("limit_up") && j["limit_up"].is_number()) {
+            stock.high_limit = j["limit_up"];
+        }
+        if (j.contains("limit_down") && j["limit_down"].is_number()) {
+            stock.low_limit = j["limit_down"];
+        }
+        if (j.contains("volume") && j["volume"].is_number()) {
+            stock.volume = j["volume"];
+        }
+        if (j.contains("total_turnover") && j["total_turnover"].is_number()) {
+            stock.acc_turnover = j["total_turnover"];
+        }
+        if (j.contains("num_trades") && j["num_trades"].is_number()) {
+            stock.match_items = j["num_trades"];
+        }
+        if (j.contains("iopv") && j["iopv"].is_number()) {
+            stock.iopv = j["iopv"];
+        }
+        if (j.contains("prev_iopv") && j["prev_iopv"].is_number()) {
+            stock.pre_close_iopv = j["prev_iopv"];
+        }
+
+        if (j.contains("ask") && j["ask"].is_array() && j.contains("ask_vol") && j["ask_vol"].is_array()) {
+            size_t len = std::min(j["ask"].size(), j["ask_vol"].size());
+            for(size_t i = 0; i < len && i < 5; i++){
+                if (j["ask"][i].is_number()) stock.ask_price[i] = j["ask"][i];
+                if (j["ask_vol"][i].is_number()) stock.ask_volume[i] = j["ask_vol"][i];
+            }
+        }
+        if (j.contains("bid") && j["bid"].is_array() && j.contains("bid_vol") && j["bid_vol"].is_array()) {
+            size_t len = std::min(j["bid"].size(), j["bid_vol"].size());
+            for(size_t i = 0; i < len && i < 5; i++){
+                if (j["bid"][i].is_number()) stock.bid_price[i] = j["bid"][i];
+                if (j["bid_vol"][i].is_number()) stock.bid_volume[i] = j["bid_vol"][i];
+            }
+        }
+
+
+        static auto last_print_time = std::chrono::steady_clock::now();
+        auto now = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::seconds>(now - last_print_time).count() >= 3) {
+                
+            json out_j;
+            TiQuoteFormater::FormatSnapshot(&stock, out_j);
+            std::cout << out_j << std::endl;
+            std::cout << "-------------" << std::endl;
+            last_print_time = now;
+        }
+        
+        // Call the callback
+        m_ipc_server.OnL2StockSnapshotRtn(&stock);
     }
-
-    /*
-    std::cout << j << std::endl;
-
-    json out_j;
-    TiQuoteFormater::FormatSnapshot(&stock, out_j);
-
-    std::cout << out_j << std::endl;
-    std::cout << "-------------" << std::endl;
-
-    */
-
-    // Call the callback
-    m_ipc_server.OnL2StockSnapshotRtn(&stock);
 
     return;
 };
