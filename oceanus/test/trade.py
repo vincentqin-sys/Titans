@@ -2,11 +2,11 @@ import redis
 import json
 
 redis_pool = redis.ConnectionPool(
-    host='121.36.210.85', port= 20184, password= 'P7pO48Lw4AZTOLXKlR', db= 0)
+    host='47.103.74.35', port= 18186, password= 'Nr3pQtvzTMptbDEP8wVGz87apKQYjMC4', db= 0)
 redis_conn = redis.Redis(connection_pool= redis_pool)
 
 
-streamKey = "oc_trader_commander_guangfa.00043346"
+streamKey = "oc_trader_commander_huaxin.501000114077"
 
 def querySymbolList():
     redis_conn.xadd(streamKey,
@@ -288,14 +288,14 @@ def enterOrder_ETF_Redemption():
 #enterOrder_sell_sz()
 #QueryOrders()
 #enterOrder()
-enterOrder_SZ()
+#enterOrder_SZ()
 #for i in range(100):
 #    enterOrder_SZ()
 #cancelOrder(1680011)
 
 #enterOrderGroup_SZ()
 
-#QueryPositions()
+QueryPositions()
 #exit(0)
 #QueryAsset()
 #QueryPositions()
