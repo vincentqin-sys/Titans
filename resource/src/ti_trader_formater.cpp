@@ -89,6 +89,50 @@ void TiTraderFormater::FormatOrderStatus(const TiRtnOrderStatus* pData, json& j)
     default:
         break;
     }
+
+    switch (pData->nTradeSideType){
+    case TI_TradeSideType_Default:
+        j["szTradeSide"] = "default";
+        break;
+    case TI_TradeSideType_Sell:
+        j["szTradeSide"] = "sell";
+        break;
+    case TI_TradeSideType_Buy:
+        j["szTradeSide"] = "buy";
+        break;
+    case TI_TradeSideType_Purchase:
+        j["szTradeSide"] = "purchase";
+        break;
+    case TI_TradeSideType_Redemption:
+        j["szTradeSide"] = "redemption";
+        break;
+    default:
+        break;
+    }
+
+    switch (pData->nOffsetType){
+    case TI_OffsetType_Open:
+        j["szOffset"] = "open";
+        break;
+    case TI_OffsetType_Close:
+        j["szOffset"] = "close";
+        break;
+    default:
+        break;
+    }
+
+    switch (pData->nBusinessType){
+    case TI_BusinessType_Stock:
+        j["szBusiness"] = "stock";
+        break;
+    case TI_BusinessType_ETF:
+        j["szBusiness"] = "etf";
+        break;
+    default:
+        break;
+    }
+
+
 };
 
 void TiTraderFormater::FormatOrderMatchEvent(const TiRtnOrderMatch* pData, json& j)

@@ -40,6 +40,8 @@ void TiHxTraderClient::OnFrontConnected(){
     LOG(INFO) << "[OnFrontConnected] ";
     std::cout << "[OnFrontConnected] " << std::endl;
 
+    m_client->ReqGetConnectionInfo(1);
+
     CTORATstpReqUserLoginField req;
 
     memset(&req, 0, sizeof(req));
@@ -49,6 +51,7 @@ void TiHxTraderClient::OnFrontConnected(){
     strcpy(req.Password, m_config->szPass.c_str());
     strcpy(req.UserProductInfo, m_config->szUserProductInfo.c_str());
     strcpy(req.TerminalInfo, m_config->szTerminalInfo.c_str());
+    strcpy(req.DynamicPassword, "PJTnl000");
     
     int ret = m_client->ReqUserLogin(&req, ++nReqId);
 
@@ -61,6 +64,22 @@ void TiHxTraderClient::OnFrontConnected(){
 void TiHxTraderClient::OnFrontDisconnected(int nReason){
     LOG(INFO) << "[OnFrontDisconnected] nReason: " << nReason;
     std::cout << "[OnFrontDisconnected] nReason: " << nReason << std::endl;
+};
+
+///错误应答
+void TiHxTraderClient::OnRspError(CTORATstpRspInfoField *pRspInfoField, int nRequestID, bool bIsLast) {
+    LOG(INFO) << "[OnRspError] ErrorMsg: " << pRspInfoField->ErrorMsg;
+    std::cout << "[OnRspError] ErrorMsg: " << pRspInfoField->ErrorMsg << std::endl;
+};
+    
+///获取连接信息应答
+void TiHxTraderClient::OnRspGetConnectionInfo(CTORATstpConnectionInfoField *pConnectionInfoField, CTORATstpRspInfoField *pRspInfoField, int nRequestID) {
+    LOG(INFO) << "[OnRspGetConnectionInfo] MacAddress: " << pConnectionInfoField->MacAddress;
+    LOG(INFO) << "[OnRspGetConnectionInfo] OuterIPAddress: " << pConnectionInfoField->OuterIPAddress;
+    LOG(INFO) << "[OnRspGetConnectionInfo] InnerIPAddress: " << pConnectionInfoField->InnerIPAddress;
+    std::cout << "[OnRspGetConnectionInfo] MacAddress: " << pConnectionInfoField->MacAddress << std::endl;
+    std::cout << "[OnRspGetConnectionInfo] OuterIPAddress: " << pConnectionInfoField->OuterIPAddress << std::endl;
+    std::cout << "[OnRspGetConnectionInfo] InnerIPAddress: " << pConnectionInfoField->InnerIPAddress << std::endl;
 };
 
 void TiHxTraderClient::OnRspUserLogin(CTORATstpRspUserLoginField *pRspUserLoginField, CTORATstpRspInfoField *pRspInfoField, int nRequestID)
@@ -320,6 +339,7 @@ void TiHxTraderClient::OnRspQryOrder(CTORATstpOrderField *pOrderField, CTORATstp
     strcpy(order_ptr->szOrderStreamId, pOrderField->OrderSysID);
 
     order_ptr->nSubmitVol = pOrderField->VolumeTotalOriginal;
+    order_ptr->nDealtPrice = pOrderField->Turnover ? 0 : (pOrderField->Turnover / pOrderField->VolumeTraded);
     order_ptr->nDealtVol = pOrderField->VolumeTraded;
     order_ptr->nStatus = getOrderStatus(pOrderField->OrderStatus);
 
@@ -437,6 +457,7 @@ void TiHxTraderClient::OnRspOrderInsert(CTORATstpInputOrderField *pInputOrderFie
     strcpy(order_ptr->szOrderStreamId, pOrderField->OrderSysID);
 
     order_ptr->nSubmitVol = pOrderField->VolumeTotalOriginal;
+    order_ptr->nDealtPrice = pOrderField->Turnover ? 0 : (pOrderField->Turnover / pOrderField->VolumeTraded);
     order_ptr->nDealtVol = pOrderField->VolumeTraded;
     order_ptr->nStatus = getOrderStatus(pOrderField->OrderStatus);
 
@@ -716,7 +737,12 @@ void TiHxTraderClient::connect(){
     m_client = CTORATstpTraderApi::CreateTstpTraderApi();
     m_client->RegisterSpi(this);
     std::cout << "[connect] " << m_config->szLocations << std::endl;
-    m_client->RegisterFront((char*)m_config->szLocations.c_str());
+    CTORATstpFensUserInfoField fens_user_info_field = {0};
+    strcpy(fens_user_info_field.FensEnvID, "stock");
+    strcpy(fens_user_info_field.FensNodeID, "18");
+
+    m_client->RegisterFensUserInfo(&fens_user_info_field);
+    m_client->RegisterNameServer((char*)m_config->szLocations.c_str());
     m_client->SubscribePrivateTopic(TORA_TERT_QUICK);
     m_client->SubscribePublicTopic(TORA_TERT_RESTART);
     m_client->Init();

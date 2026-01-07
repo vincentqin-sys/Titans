@@ -102,7 +102,7 @@ void OcTraderCommanderHuaxin::OnRspQryOrder(const TiRspQryOrder* pData, bool isL
     json j;
     TiTraderFormater::FormatOrderStatus(pData, j);
     std::cout << "OnRspQryOrder: " << j << std::endl;
-    return;
+    //return;
     if (m_config)
     {
         if(!m_config->szOrderKey.empty())
@@ -123,7 +123,7 @@ void OcTraderCommanderHuaxin::OnRspQryMatch(const TiRspQryMatch* pData, bool isL
     json j;
     TiTraderFormater::FormatOrderMatchEvent(pData, j);
     std::cout << "OnRtnOrderMatchEvent: " << j << std::endl;
-    return;
+    //return;
     if (m_config)
     {
         if(!m_config->szMatchKey.empty())
@@ -148,6 +148,14 @@ void OcTraderCommanderHuaxin::OnRtnOrderStatusEvent(const TiRtnOrderStatus* pDat
     json j;
     TiTraderFormater::FormatOrderStatus(pData, j);
     std::cout << "OnRtnOrderStatusEvent: " << j << std::endl;
+    if (m_config)
+    {
+        if(!m_config->szOrderKey.empty())
+        {
+            TiTraderFormater::FormatOrderStatus(pData, m_json_cash);
+            m_redis.hmset(m_config->szOrderKey.c_str(), m_json_cash["szOrderId"].get<std::string>().c_str(), m_json_cash.dump().c_str());
+        }
+    }
 };
 void OcTraderCommanderHuaxin::OnRtnOrderMatchEvent(const TiRtnOrderMatch* pData)
 {
@@ -155,6 +163,14 @@ void OcTraderCommanderHuaxin::OnRtnOrderMatchEvent(const TiRtnOrderMatch* pData)
     json j;
     TiTraderFormater::FormatOrderMatchEvent(pData, j);
     std::cout << "OnRtnOrderMatchEvent: " << j << std::endl;
+    if (m_config)
+    {
+        if(!m_config->szMatchKey.empty())
+        {
+            TiTraderFormater::FormatOrderMatchEvent(pData, m_json_cash);
+            m_redis.hmset(m_config->szMatchKey.c_str(), m_json_cash["szStreamId"].get<std::string>().c_str(), m_json_cash.dump().c_str());
+        }
+    }
 };
 
 
